@@ -23,7 +23,10 @@ All 5 roadmap phases are built and verified. This is a local, single-user job-ap
 **Key decisions that diverged from the original roadmap:**
 - **LLM provider: Gemini** (`gemini-2.5-flash` via `google-genai` SDK), NOT Claude. Key in `.env` as `GEMINI_API_KEY`. ROADMAP §6 was updated to reflect this. `gemini-1.5-flash` is retired — use 2.5.
 - **Resume = LaTeX.** User's real resume is a structured JSON schema (see [[resume-latex-pipeline]]) rendered to `.tex` and compiled to PDF by **tectonic**. There's an on-dashboard LaTeX editor (CodeMirror + live preview).
-- **Sources (4):** RemoteOK (global JSON), Greenhouse, Lever, Ashby — the last three are per-company boards configured in `.env` (`GREENHOUSE_BOARDS`, `LEVER_BOARDS`, `ASHBY_BOARDS`). Defaults are mobile-heavy boards. Adding source #5 = one class in `core/sources/`.
+- **Sources (5):** RemoteOK (global JSON), Greenhouse, Lever, Ashby (per-company boards via `.env`: `GREENHOUSE_BOARDS`/`LEVER_BOARDS`/`ASHBY_BOARDS`), and WeWorkRemotely (RSS, `WWR_FEEDS`). Defaults are mobile-heavy boards. Workable was evaluated but skipped — needs per-company shortcodes that can't be reliably sourced. Adding a source = one class in `core/sources/`.
+- **Follow-up email drafts:** `Application.followup_draft`; generated via Gemini in the Review Queue ("Draft email" on due follow-ups). `core/services/tailoring.py: generate_followup_email`.
+- **Screening answers:** `ResumeVersion.screening_answers` (list of {question,answer}); generated during tailoring, shown in the "Screening" tab.
+- **Gemini resilience:** all Gemini calls go through `_retry()` in `core/services/llm/gemini.py` (backoff on 429). Models: `gemini-2.5-flash` (gen), `gemini-embedding-001` (1536-dim). embeddings are batched (~50/call) in `embed_jobs`.
 
 **Sourcing/matching backlog batch (all built):**
 - **Stale-job expiry:** `ingest_jobs` marks jobs of a source not seen in the run as `is_gone=True` (guarded by non-empty fetch). Lists already filter `is_gone=False`.

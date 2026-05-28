@@ -11,7 +11,10 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import Job, Profile, ResumeVersion, Application, FilterPreset, IngestRun
-from .services.tailoring import tailor_resume, generate_cover_letter, diff_resumes
+from .services.tailoring import (
+    tailor_resume, generate_cover_letter, diff_resumes,
+    generate_screening_answers, generate_followup_email,
+)
 from .services.pdf import compile_latex, TectonicNotInstalled, LatexCompileError
 from .services.latex_resume import render_latex
 from .services.scoring import RELEVANCE_THRESHOLD, score_job
@@ -256,6 +259,12 @@ def tailor_job(request, job_id):
             company=job.company,
             job_description=job.description,
         )
+        screening = generate_screening_answers(
+            tailored_resume=tailored,
+            job_title=job.title,
+            company=job.company,
+            job_description=job.description,
+        )
         ResumeVersion.objects.create(
             profile=profile,
             job=job,
@@ -263,6 +272,7 @@ def tailor_job(request, job_id):
             content=tailored,
             provider="gemini-2.5-flash",
             cover_letter=cover,
+            screening_answers=screening,
         )
         # Advance the pipeline: tailoring a resume means you're working on it.
         # Don't downgrade jobs already further along (ready/applied/etc.).
@@ -672,3 +682,20 @@ def snooze_followup(request, job_id):
     if request.headers.get("HX-Request"):
         return render(request, "core/_queue.html", _queue_context(request))
     return redirect("queue")
+
+
+@require_POST
+def followup_draft(request, job_id):
+    app = get_object_or_404(Application, job_id=job_id)
+    profile = Profile.objects.first()
+    days = 0
+    if app.applied_at:
+        days = max(0, (timezone.now() - app.applied_at).days)
+    app.followup_draft = generate_followup_email(
+        resume=profile.structured_resume if profile else {},
+        job_title=app.job.title,
+        company=app.job.company,
+        applied_days_ago=days,
+    )
+    app.save(update_fields=["followup_draft"])
+    return render(request, "core/_followup_draft.html", {"app": app})

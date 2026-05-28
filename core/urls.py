@@ -24,6 +24,7 @@ urlpatterns = [
     path("queue/", views.queue, name="queue"),
     path("queue/fragment/", views.queue_fragment, name="queue_fragment"),
     path("jobs/<int:job_id>/snooze/", views.snooze_followup, name="snooze_followup"),
+    path("jobs/<int:job_id>/followup-draft/", views.followup_draft, name="followup_draft"),
     # Scraper / ingestion observability
     path("ingestion/", views.ingestion, name="ingestion"),
     path("ingestion/fragment/", views.ingestion_fragment, name="ingestion_fragment"),

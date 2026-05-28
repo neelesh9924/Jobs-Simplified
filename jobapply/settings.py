@@ -20,6 +20,12 @@ GREENHOUSE_BOARDS = env.list(
 )
 LEVER_BOARDS = env.list("LEVER_BOARDS", default=["spotify"])
 ASHBY_BOARDS = env.list("ASHBY_BOARDS", default=["openai", "ramp", "notion"])
+WWR_FEEDS = env.list("WWR_FEEDS", default=[
+    "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+])
+# A job is marked "gone" only after it's been missing from this many consecutive
+# runs of its source — forgiving of a single transient empty/failed fetch.
+STALE_AFTER_RUNS = env.int("STALE_AFTER_RUNS", default=3)
 
 INSTALLED_APPS = [
     "django.contrib.admin",

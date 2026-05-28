@@ -1,0 +1,21 @@
+{% comment %} Drafted follow-up email for one application. Param: app {% endcomment %}
+<div id="fu-draft-{{ app.job.id }}">
+  {% if app.followup_draft %}
+  <div x-data="{ copied:false }" class="mt-2 rounded-lg border border-gray-200 bg-white p-3">
+    <div class="mb-1 flex items-center justify-between">
+      <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+        <i data-lucide="mail" class="h-3.5 w-3.5"></i> Follow-up draft
+      </span>
+      <div class="flex items-center gap-2">
+        <button @click="navigator.clipboard.writeText($refs.fu.innerText); copied=true; setTimeout(()=>copied=false,1500)"
+                class="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-500 hover:bg-gray-50">
+          <i data-lucide="copy" class="h-3 w-3"></i><span x-text="copied ? 'Copied' : 'Copy'"></span>
+        </button>
+        <button hx-post="{% url 'followup_draft' app.job.id %}" hx-target="#fu-draft-{{ app.job.id }}" hx-swap="outerHTML"
+                class="rounded-md border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-500 hover:bg-gray-50">Regenerate</button>
+      </div>
+    </div>
+    <div x-ref="fu" class="whitespace-pre-wrap text-xs leading-relaxed text-gray-700">{{ app.followup_draft }}</div>
+  </div>
+  {% endif %}
+</div>

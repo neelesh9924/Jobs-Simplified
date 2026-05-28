@@ -7,10 +7,11 @@ from core.sources.remoteok import RemoteOKAdapter
 from core.sources.greenhouse import GreenhouseAdapter
 from core.sources.lever import LeverAdapter
 from core.sources.ashby import AshbyAdapter
+from core.sources.wwr import WeWorkRemotelyAdapter
 from core.services.region import infer_region
 from core.services.scoring import score_job
 
-SOURCES = ["remoteok", "greenhouse", "lever", "ashby"]
+SOURCES = ["remoteok", "greenhouse", "lever", "ashby", "wwr"]
 
 
 def _build_adapter(source_key):
@@ -22,6 +23,8 @@ def _build_adapter(source_key):
         return LeverAdapter(boards=settings.LEVER_BOARDS)
     if source_key == "ashby":
         return AshbyAdapter(boards=settings.ASHBY_BOARDS)
+    if source_key == "wwr":
+        return WeWorkRemotelyAdapter(feeds=settings.WWR_FEEDS)
     raise CommandError(f"Unknown source: {source_key}")
 
 
@@ -98,16 +101,23 @@ class Command(BaseCommand):
             except Exception as exc:
                 errors.append(f"{nj.external_id}: {exc}")
 
-        # Stale-job expiry: anything from this source not seen in this run is
-        # marked gone (kept for history, hidden from lists). Guarded by a
-        # non-empty fetch so a transient empty response can't wipe the board.
+        # Stale-job expiry: mark a job gone only once it's been missing from the
+        # last STALE_AFTER_RUNS runs of this source (forgiving of one bad fetch).
+        # We need that many prior runs of history before expiring anything.
         gone_count = 0
+        n = settings.STALE_AFTER_RUNS
         if seen_ids:
-            gone_count = (
-                Job.objects.filter(source_key=source_key, is_gone=False)
-                .exclude(external_id__in=seen_ids)
-                .update(is_gone=True)
+            prior = list(
+                IngestRun.objects.filter(source_key=source_key)
+                .exclude(pk=run.pk)
+                .order_by("-started_at")[:n]
             )
+            if len(prior) >= n:
+                cutoff = prior[n - 1].started_at  # start of the run n-back
+                gone_count = (
+                    Job.objects.filter(source_key=source_key, is_gone=False, last_seen_at__lt=cutoff)
+                    .update(is_gone=True)
+                )
 
         run.new_count = new_count
         run.updated_count = updated_count

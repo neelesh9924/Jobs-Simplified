@@ -15,6 +15,10 @@
                 class="border-b-2 px-3 pb-3 text-sm font-medium transition">
           <span class="inline-flex items-center gap-1.5"><i data-lucide="mail" class="h-4 w-4"></i> Cover letter</span>
         </button>
+        <button @click="tab='screening'" :class="tab==='screening' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="border-b-2 px-3 pb-3 text-sm font-medium transition">
+          <span class="inline-flex items-center gap-1.5"><i data-lucide="messages-square" class="h-4 w-4"></i> Screening</span>
+        </button>
       </div>
       <span class="hidden items-center gap-1.5 pb-3 text-xs text-gray-400 sm:inline-flex">
         <i data-lucide="sparkles" class="h-3.5 w-3.5 text-violet-400"></i>
@@ -67,6 +71,28 @@
       <div class="px-6 pb-6 pt-2">
         <div x-ref="cl" class="whitespace-pre-wrap text-[15px] leading-7 text-gray-700">{{ latest.cover_letter|default:"No cover letter generated." }}</div>
       </div>
+    </div>
+
+    <!-- Screening tab -->
+    <div x-show="tab==='screening'" x-cloak>
+      {% if latest.screening_answers %}
+      <div class="divide-y divide-gray-100">
+        {% for qa in latest.screening_answers %}
+        <div x-data="{ copied:false }" class="px-5 py-4">
+          <div class="flex items-start justify-between gap-3">
+            <p class="text-sm font-semibold text-gray-800">{{ qa.question }}</p>
+            <button @click="navigator.clipboard.writeText($refs.a{{ forloop.counter }}.innerText); copied=true; setTimeout(()=>copied=false,1500)"
+                    class="shrink-0 inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-[11px] font-medium text-gray-500 transition hover:bg-gray-50">
+              <i data-lucide="copy" class="h-3 w-3"></i><span x-text="copied ? 'Copied' : 'Copy'"></span>
+            </button>
+          </div>
+          <p x-ref="a{{ forloop.counter }}" class="mt-1.5 text-sm leading-relaxed text-gray-600">{{ qa.answer }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="px-5 py-8 text-center text-sm text-gray-400">No screening answers generated. Re-tailor to draft them.</p>
+      {% endif %}
     </div>
   </div>
 

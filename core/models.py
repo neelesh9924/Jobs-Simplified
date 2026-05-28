@@ -81,6 +81,10 @@ class ResumeVersion(models.Model):
     rendered_path = models.CharField(max_length=512, blank=True, help_text="Path to rendered PDF")
     provider = models.CharField(max_length=64, blank=True, help_text="LLM provider that made this version")
     cover_letter = models.TextField(blank=True)
+    screening_answers = models.JSONField(
+        default=list, blank=True,
+        help_text="List of {question, answer} drafts for application screening questions.",
+    )
     latex_source = models.TextField(
         blank=True,
         help_text="Hand-edited LaTeX. When set, it overrides the generated .tex for this version.",
@@ -115,6 +119,7 @@ class Application(models.Model):
     notes = models.TextField(blank=True)
     applied_at = models.DateTimeField(null=True, blank=True)
     follow_up_at = models.DateTimeField(null=True, blank=True)
+    followup_draft = models.TextField(blank=True, help_text="Drafted follow-up email (you send it).")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

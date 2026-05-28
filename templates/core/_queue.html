@@ -9,20 +9,27 @@
   </h2>
   <div class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-amber-200 bg-amber-50/40">
     {% for app in followups %}
-    <div class="flex items-center gap-3 px-4 py-2.5">
-      <i data-lucide="clock" class="h-4 w-4 shrink-0 text-amber-500"></i>
-      <a href="{% url 'job_detail' app.job.id %}" class="min-w-0 flex-1">
-        <span class="text-sm font-medium text-gray-800">{{ app.job.title }}</span>
-        <span class="text-xs text-gray-500">· {{ app.job.company }}</span>
-      </a>
-      <span class="hidden text-xs text-gray-400 sm:inline">due {{ app.follow_up_at|date:"M j" }} · {{ app.get_status_display }}</span>
-      <div class="flex items-center gap-1.5">
-        <button hx-post="{% url 'snooze_followup' app.job.id %}" hx-target="#queue" hx-swap="innerHTML" hx-include="#queue-filter"
-                class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50">+7d</button>
-        <button hx-post="{% url 'set_status' app.job.id %}" hx-vals='{"status":"screening","scope":"queue"}'
-                hx-target="#queue" hx-swap="innerHTML" hx-include="#queue-filter"
-                class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50">Got reply</button>
+    <div class="px-4 py-2.5">
+      <div class="flex items-center gap-3">
+        <i data-lucide="clock" class="h-4 w-4 shrink-0 text-amber-500"></i>
+        <a href="{% url 'job_detail' app.job.id %}" class="min-w-0 flex-1">
+          <span class="text-sm font-medium text-gray-800">{{ app.job.title }}</span>
+          <span class="text-xs text-gray-500">· {{ app.job.company }}</span>
+        </a>
+        <span class="hidden text-xs text-gray-400 sm:inline">due {{ app.follow_up_at|date:"M j" }} · {{ app.get_status_display }}</span>
+        <div class="flex items-center gap-1.5">
+          <button hx-post="{% url 'followup_draft' app.job.id %}" hx-target="#fu-draft-{{ app.job.id }}" hx-swap="outerHTML"
+                  class="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-brand-700 transition hover:bg-brand-50">
+            <i data-lucide="mail" class="h-3 w-3"></i> Draft email
+          </button>
+          <button hx-post="{% url 'snooze_followup' app.job.id %}" hx-target="#queue" hx-swap="innerHTML" hx-include="#queue-filter"
+                  class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50">+7d</button>
+          <button hx-post="{% url 'set_status' app.job.id %}" hx-vals='{"status":"screening","scope":"queue"}'
+                  hx-target="#queue" hx-swap="innerHTML" hx-include="#queue-filter"
+                  class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50">Got reply</button>
+        </div>
       </div>
+      {% include "core/_followup_draft.html" with app=app %}
     </div>
     {% endfor %}
   </div>
