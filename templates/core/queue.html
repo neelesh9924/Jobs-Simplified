@@ -10,6 +10,28 @@
 
 {% block content %}
 <div class="mx-auto max-w-4xl">
+  <form id="queue-filter"
+        hx-get="{% url 'queue_fragment' %}"
+        hx-target="#queue"
+        hx-swap="innerHTML"
+        hx-trigger="change, input from:#queue-q delay:350ms"
+        class="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 shadow-card">
+    <div class="relative flex-1 min-w-[180px]">
+      <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"></i>
+      <input id="queue-q" type="text" name="q" value="{{ filters.q }}" autocomplete="off" placeholder="Search title or company…"
+             class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100">
+    </div>
+    {% include "core/_select.html" with name="source" label="Source" value=filters.source options=sources %}
+    {% include "core/_select.html" with name="region" label="Region" value=filters.region options=regions %}
+    <select name="sort" class="rounded-lg border border-gray-200 bg-white py-2 px-2.5 text-sm text-gray-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100">
+      <option value="-score"      {% if filters.sort == "-score" %}selected{% endif %}>Best match</option>
+      <option value="-updated_at" {% if filters.sort == "-updated_at" %}selected{% endif %}>Recently updated</option>
+      <option value="-posted_at"  {% if filters.sort == "-posted_at" %}selected{% endif %}>Newest posted</option>
+    </select>
+    <span class="ml-auto text-xs font-medium text-gray-400">Posted within:</span>
+    {% include "core/_freshness.html" with value=filters.posted %}
+  </form>
+
   <div id="queue">
     {% include "core/_queue.html" %}
   </div>

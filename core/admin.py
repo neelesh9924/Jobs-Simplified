@@ -41,5 +41,5 @@ class FilterPresetAdmin(admin.ModelAdmin):
 
 @admin.register(IngestRun)
 class IngestRunAdmin(admin.ModelAdmin):
-    list_display = ("source_key", "started_at", "finished_at", "fetched_count", "new_count", "updated_count", "error_count")
-    readonly_fields = ("started_at", "finished_at", "fetched_count", "new_count", "updated_count", "error_count", "error_log")
+    list_display = ("source_key", "started_at", "finished_at", "fetched_count", "new_count", "updated_count", "gone_count", "error_count")
+    readonly_fields = ("started_at", "finished_at", "fetched_count", "new_count", "updated_count", "gone_count", "error_count", "error_log")

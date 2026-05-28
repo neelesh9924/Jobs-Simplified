@@ -70,16 +70,19 @@
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 text-white shadow-sm">
           <i data-lucide="briefcase" class="h-4.5 w-4.5"></i>
         </div>
-        <span class="text-[15px] font-bold tracking-tight">JobHunt</span>
+        <span class="text-[15px] font-bold leading-tight tracking-tight">Job Hunt<br>Made Easy</span>
       </div>
 
       <!-- Nav -->
       <nav class="flex-1 space-y-1 px-3 py-4">
         {% include "core/_nav_item.html" with icon="layout-grid" label="Jobs" url_name="job_list" key="jobs" %}
+        {% include "core/_nav_item.html" with icon="globe" label="Remote" href="/jobs/?region=remote" key="remote_view" %}
+        {% include "core/_nav_item.html" with icon="map-pin" label="India / On-site" href="/jobs/?region=india" key="region_view" %}
         {% include "core/_nav_item.html" with icon="sparkles" label="Tailored" href="/jobs/?tailored=1" key="tailored" %}
         {% include "core/_nav_item.html" with icon="send" label="Review queue" url_name="queue" key="queue" %}
         {% include "core/_nav_item.html" with icon="kanban" label="Tracker" url_name="tracker" key="tracker" %}
-        {% include "core/_nav_item.html" with icon="user-round" label="Profile" href="/admin/core/profile/" key="profile" %}
+        {% include "core/_nav_item.html" with icon="radio-tower" label="Scraper" url_name="ingestion" key="ingestion" %}
+        {% include "core/_nav_item.html" with icon="user-round" label="Profile" url_name="profile" key="profile" %}
       </nav>
 
       <!-- Profile footer -->

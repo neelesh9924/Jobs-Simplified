@@ -51,6 +51,14 @@ class Job(models.Model):
     last_seen_at = models.DateTimeField()
     is_gone = models.BooleanField(default=False)
     score = models.FloatField(null=True, blank=True)
+    # Cross-source dedupe: non-canonical copies point at the canonical row.
+    is_duplicate = models.BooleanField(default=False)
+    duplicate_of = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="duplicates"
+    )
+    # Semantic matching (filled by the embed_jobs command).
+    embedding = models.JSONField(null=True, blank=True)
+    semantic_score = models.FloatField(null=True, blank=True)
     raw_data = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -134,6 +142,7 @@ class IngestRun(models.Model):
     fetched_count = models.IntegerField(default=0)
     new_count = models.IntegerField(default=0)
     updated_count = models.IntegerField(default=0)
+    gone_count = models.IntegerField(default=0)
     error_count = models.IntegerField(default=0)
     error_log = models.TextField(blank=True)
 
@@ -142,3 +151,13 @@ class IngestRun(models.Model):
 
     def __str__(self):
         return f"IngestRun {self.source_key} @ {self.started_at:%Y-%m-%d %H:%M}"
+
+    @property
+    def duration_seconds(self):
+        if self.started_at and self.finished_at:
+            return (self.finished_at - self.started_at).total_seconds()
+        return None
+
+    @property
+    def ok(self):
+        return self.error_count == 0 and self.finished_at is not None

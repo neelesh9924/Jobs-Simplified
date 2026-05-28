@@ -69,8 +69,11 @@
           <i data-lucide="loader-circle" class="h-3 w-3 animate-spin"></i> rendering
         </span>
       </div>
-      <div class="min-h-0 flex-1 bg-gray-100">
-        <iframe x-ref="preview" class="h-full w-full" :src="previewUrl"></iframe>
+      <div class="relative min-h-0 flex-1 bg-gray-100">
+        <iframe x-ref="preview" class="h-full w-full"></iframe>
+        <div x-show="error && !compiling" x-cloak class="absolute inset-0 flex items-center justify-center p-6 text-center">
+          <p class="text-sm text-gray-400">Preview unavailable — see the compile error in the editor pane.</p>
+        </div>
       </div>
     </div>
 
@@ -94,6 +97,9 @@
       error: '',
       edited: {{ edited|yesno:"true,false" }},
       dirty: false,
+      blobUrl: null,
+      // single page-one view, no thumbnail/page sidebar, fit width
+      pdfHash: '#toolbar=1&navpanes=0&scrollbar=1&view=FitH&page=1',
       previewUrl: "{% url 'editor_preview' kind pk %}",
       compileUrl: "{% url 'editor_compile' kind pk %}",
       downloadUrl: "{% if kind == 'version' %}{% url 'resume_pdf' pk %}{% else %}{% url 'base_resume_pdf' %}{% endif %}",
@@ -105,7 +111,6 @@
           viewportMargin: Infinity,
         });
         this.cm.on('change', () => { this.dirty = true; });
-        // Ctrl/Cmd+S or Ctrl/Cmd+Enter to recompile
         this.cm.setOption('extraKeys', {
           'Cmd-S': () => this.recompile(), 'Ctrl-S': () => this.recompile(),
           'Cmd-Enter': () => this.recompile(), 'Ctrl-Enter': () => this.recompile(),
@@ -113,6 +118,27 @@
         window.addEventListener('keydown', (e) => {
           if ((e.metaKey || e.ctrlKey) && (e.key === 's')) { e.preventDefault(); this.recompile(); }
         });
+        // initial render via fetch->blob (avoids iframe loading a server URL directly)
+        this.load();
+      },
+
+      _show(blob) {
+        if (this.blobUrl) URL.revokeObjectURL(this.blobUrl);
+        this.blobUrl = URL.createObjectURL(blob);
+        this.$refs.preview.src = this.blobUrl + this.pdfHash;
+      },
+
+      async load() {
+        this.compiling = true; this.error = '';
+        try {
+          const res = await fetch(this.previewUrl, { headers: { 'X-CSRFToken': this.csrf } });
+          if (res.ok && res.headers.get('Content-Type')?.includes('pdf')) {
+            this._show(await res.blob());
+          } else {
+            this.error = await res.text();
+          }
+        } catch (e) { this.error = String(e); }
+        finally { this.compiling = false; }
       },
 
       async recompile() {
@@ -126,17 +152,13 @@
             body,
           });
           if (res.ok && res.headers.get('Content-Type')?.includes('pdf')) {
-            const blob = await res.blob();
-            this.$refs.preview.src = URL.createObjectURL(blob);
+            this._show(await res.blob());
             this.edited = true; this.dirty = false;
           } else {
             this.error = await res.text();
           }
-        } catch (e) {
-          this.error = String(e);
-        } finally {
-          this.compiling = false;
-        }
+        } catch (e) { this.error = String(e); }
+        finally { this.compiling = false; }
       },
     };
   }

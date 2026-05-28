@@ -17,10 +17,10 @@
       </a>
       <span class="hidden text-xs text-gray-400 sm:inline">due {{ app.follow_up_at|date:"M j" }} · {{ app.get_status_display }}</span>
       <div class="flex items-center gap-1.5">
-        <button hx-post="{% url 'snooze_followup' app.job.id %}" hx-target="#queue" hx-swap="innerHTML"
+        <button hx-post="{% url 'snooze_followup' app.job.id %}" hx-target="#queue" hx-swap="innerHTML" hx-include="#queue-filter"
                 class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50">+7d</button>
         <button hx-post="{% url 'set_status' app.job.id %}" hx-vals='{"status":"screening","scope":"queue"}'
-                hx-target="#queue" hx-swap="innerHTML"
+                hx-target="#queue" hx-swap="innerHTML" hx-include="#queue-filter"
                 class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50">Got reply</button>
       </div>
     </div>
@@ -50,7 +50,7 @@
         </p>
       </div>
       <span class="shrink-0 font-mono text-sm font-semibold text-gray-400">
-        {% if app.job.score is not None %}{{ app.job.score|floatformat:2 }}{% endif %}
+        {% if app.job.score is not None %}{% widthratio app.job.score 1 100 %}%{% endif %}
       </span>
     </div>
 
@@ -88,9 +88,9 @@
         <i data-lucide="external-link" class="h-4 w-4"></i> Open posting to apply
       </a>
       <div class="flex items-center gap-2">
-        {% include "core/_move_menu.html" with job=app.job all_statuses=all_statuses scope="queue" target="#queue" swap="innerHTML" current=app.status %}
+        {% include "core/_move_menu.html" with job=app.job all_statuses=all_statuses scope="queue" target="#queue" swap="innerHTML" current=app.status include="#queue-filter" %}
         <button hx-post="{% url 'set_status' app.job.id %}" hx-vals='{"status":"applied","scope":"queue"}'
-                hx-target="#queue" hx-swap="innerHTML"
+                hx-target="#queue" hx-swap="innerHTML" hx-include="#queue-filter"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-brand-700 hover:to-violet-700">
           <i data-lucide="check" class="h-4 w-4"></i> Mark applied
         </button>

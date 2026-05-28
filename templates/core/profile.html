@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Profile — Job Hunt Made Easy{% endblock %}
+{% block page_title %}Profile{% endblock %}
+
+{% block topbar_actions %}
+<div class="flex items-center gap-2">
+  <a href="{% url 'editor' 'base' profile.id %}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+    <i data-lucide="file-code-2" class="h-4 w-4"></i> Edit résumé (LaTeX)
+  </a>
+  <a href="{% url 'base_resume_pdf' %}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+    <i data-lucide="download" class="h-4 w-4"></i> PDF
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if not profile %}
+<div class="mx-auto max-w-2xl rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500">
+  No profile yet. Run <code class="rounded bg-gray-100 px-1">manage.py seed_profile</code> to create one.
+</div>
+{% else %}
+<div class="mx-auto max-w-4xl space-y-6">
+
+  <!-- Identity -->
+  <div class="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-card">
+    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xl font-semibold text-brand-700">
+      {{ resume.name|default:"?"|slice:":1"|upper }}
+    </div>
+    <div class="min-w-0">
+      <h2 class="text-lg font-bold text-gray-900">{{ resume.name|default:"Your name" }}</h2>
+      <p class="text-sm text-gray-500">{{ resume.title|default:"—" }}</p>
+      {% if resume.contact %}
+      <p class="mt-0.5 text-xs text-gray-400">
+        {{ resume.contact.email }}{% if resume.contact.phone %} · {{ resume.contact.phone }}{% endif %}
+      </p>
+      {% endif %}
+    </div>
+    <span class="ml-auto text-xs text-gray-400">updated {{ profile.updated_at|date:"M j, Y · H:i" }} IST</span>
+  </div>
+
+  <!-- Editable matching settings -->
+  <form method="post" action="{% url 'profile' %}" class="rounded-xl border border-gray-200 bg-white p-5 shadow-card space-y-4">
+    {% csrf_token %}
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-gray-700">Matching settings</h3>
+      <span class="text-xs text-gray-400">drives job scoring &amp; relevance</span>
+    </div>
+
+    <div>
+      <label class="mb-1 block text-sm font-medium text-gray-700">Skills <span class="text-gray-400">(comma-separated)</span></label>
+      <textarea name="skills" rows="3"
+                class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100">{{ profile.skills|join:", " }}</textarea>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label class="mb-1 block text-sm font-medium text-gray-700">Keywords <span class="text-gray-400">(role-defining)</span></label>
+        <input type="text" name="keywords" value="{{ prefs.keywords|join:", " }}"
+               class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100">
+      </div>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-gray-700">Regions</label>
+        <input type="text" name="regions" value="{{ prefs.regions|join:", " }}"
+               class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100">
+      </div>
+    </div>
+
+    <div class="sm:w-1/2">
+      <label class="mb-1 block text-sm font-medium text-gray-700">Salary floor</label>
+      <input type="number" name="salary_floor" value="{{ prefs.salary_floor|default:0 }}"
+             class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100">
+    </div>
+
+    <div class="flex items-center justify-between border-t border-gray-100 pt-3">
+      <p class="text-xs text-gray-400">After changing skills/keywords, run <code class="rounded bg-gray-100 px-1">manage.py score_jobs</code> to re-score existing jobs.</p>
+      <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save</button>
+    </div>
+  </form>
+
+  <!-- Résumé snapshot (read-only; edit via LaTeX editor) -->
+  <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-card">
+    <h3 class="mb-3 text-sm font-semibold text-gray-700">Résumé</h3>
+    {% if resume.summary %}<p class="mb-3 text-sm leading-relaxed text-gray-600">{{ resume.summary }}</p>{% endif %}
+    {% if resume.experience %}
+    <div class="space-y-2">
+      {% for comp in resume.experience %}
+      <div class="text-sm">
+        <span class="font-medium text-gray-800">{{ comp.company }}</span>
+        <span class="text-gray-400">· {{ comp.roles|length }} role{{ comp.roles|length|pluralize }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <p class="mt-3 text-xs text-gray-400">Edit the résumé content in the <a href="{% url 'editor' 'base' profile.id %}" class="text-brand-600 hover:underline">LaTeX editor</a>.</p>
+  </div>
+
+</div>
+{% endif %}
+{% endblock %}

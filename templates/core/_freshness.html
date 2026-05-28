@@ -1,0 +1,10 @@
+{% comment %} Freshness selector. Param: value (current posted window: ''|7|15|30).
+   Sets a hidden `posted` input and dispatches change so the enclosing HTMX form refreshes. {% endcomment %}
+<div x-data="{ v: '{{ value }}', pick(n){ this.v = n; this.$root.closest('form').dispatchEvent(new Event('change', {bubbles:true})); } }"
+     class="inline-flex overflow-hidden rounded-lg border border-gray-200 text-sm">
+  <input type="hidden" name="posted" :value="v">
+  <button type="button" @click="pick('')"   :class="v==='' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'" class="px-3 py-1.5 transition">All</button>
+  <button type="button" @click="pick('7')"  :class="v==='7' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'" class="border-l border-gray-200 px-3 py-1.5 transition">7d</button>
+  <button type="button" @click="pick('15')" :class="v==='15' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'" class="border-l border-gray-200 px-3 py-1.5 transition">15d</button>
+  <button type="button" @click="pick('30')" :class="v==='30' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'" class="border-l border-gray-200 px-3 py-1.5 transition">30d</button>
+</div>

@@ -1,37 +1,62 @@
 """
-Keyword/skill overlap scoring.
+Relevance scoring — weighted keyword/skill overlap, zone-aware.
 
-Score = fraction of profile terms found in the job text, weighted so that
-skill matches count more than keyword-pref matches.
+A match in the TITLE counts far more than one buried in the description, and
+the profile's pref *keywords* (the role-defining terms like "android", "kotlin")
+count more than generic *skills* (git, aws, …). Score saturates to 1.0.
 
 Returns a float in [0.0, 1.0].
 """
 
 import re
 
+# Jobs scoring below this are hidden from the list by default (toggle to show all).
+RELEVANCE_THRESHOLD = 0.25
+
+# zone weights: (title, tags, description).
+# Tags are weighted near-zero on purpose: some sources (RemoteOK) auto-attach
+# noisy, irrelevant tags, so the title — where the role is actually named — drives
+# relevance, with the description as a weaker secondary signal.
+_KEYWORD_W = (6.0, 0.5, 1.0)
+_SKILL_W = (2.0, 0.5, 0.3)
+_SATURATION = 10.0  # raw weighted sum that maps to ~1.0
+
 
 def _tokens(text: str) -> set[str]:
-    return {t.lower() for t in re.findall(r"[a-zA-Z0-9#+.]+", text)}
+    return {t.lower() for t in re.findall(r"[a-zA-Z0-9#+.]+", text or "")}
 
 
-def score_job(job_text: str, job_tags: list, skills: list, pref_keywords: list) -> float:
-    if not skills and not pref_keywords:
+def _matches(term: str, text_lower: str, token_set: set[str]) -> bool:
+    # multi-word / punctuated terms -> substring; single tokens -> exact token
+    if " " in term or "/" in term:
+        return term in text_lower
+    return term in token_set
+
+
+def _zone_hit(term, title_l, title_t, tags_l, tags_t, desc_l, desc_t, weights):
+    if _matches(term, title_l, title_t):
+        return weights[0]
+    if _matches(term, tags_l, tags_t):
+        return weights[1]
+    if _matches(term, desc_l, desc_t):
+        return weights[2]
+    return 0.0
+
+
+def score_job(title: str, description: str, tags: list, skills: list, pref_keywords: list) -> float:
+    keywords = {k.lower().strip() for k in pref_keywords if k.strip()}
+    skillset = {s.lower().strip() for s in skills if s.strip()} - keywords
+    if not keywords and not skillset:
         return 0.0
 
-    haystack = _tokens(job_text)
-    tag_tokens = _tokens(" ".join(job_tags))
-    haystack |= tag_tokens
+    tags_joined = " ".join(tags or [])
+    title_l, tags_l, desc_l = (title or "").lower(), tags_joined.lower(), (description or "").lower()
+    title_t, tags_t, desc_t = _tokens(title), _tokens(tags_joined), _tokens(description)
 
-    skill_tokens = [s.lower() for s in skills]
-    kw_tokens = [k.lower() for k in pref_keywords]
+    raw = 0.0
+    for kw in keywords:
+        raw += _zone_hit(kw, title_l, title_t, tags_l, tags_t, desc_l, desc_t, _KEYWORD_W)
+    for sk in skillset:
+        raw += _zone_hit(sk, title_l, title_t, tags_l, tags_t, desc_l, desc_t, _SKILL_W)
 
-    skill_hits = sum(1 for s in skill_tokens if s in haystack)
-    kw_hits = sum(1 for k in kw_tokens if k in haystack)
-
-    # Skills are weighted 2x over pref keywords
-    total_weight = 2 * len(skill_tokens) + len(kw_tokens)
-    if total_weight == 0:
-        return 0.0
-
-    weighted_hits = 2 * skill_hits + kw_hits
-    return round(weighted_hits / total_weight, 4)
+    return round(min(1.0, raw / _SATURATION), 4)

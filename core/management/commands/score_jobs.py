@@ -21,8 +21,7 @@ class Command(BaseCommand):
         updated = 0
         for job in jobs:
             region = job.region_override or infer_region(job.location)
-            job_text = f"{job.title} {job.company} {job.description}"
-            new_score = score_job(job_text, job.tags, skills, pref_keywords)
+            new_score = score_job(job.title, job.description, job.tags, skills, pref_keywords)
             job.region = region
             job.score = new_score
             updated += 1

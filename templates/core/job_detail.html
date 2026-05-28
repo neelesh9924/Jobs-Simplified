@@ -34,7 +34,7 @@
         <div class="flex shrink-0 items-center gap-4">
           <div class="text-right">
             <p class="text-[11px] font-medium uppercase tracking-wider text-gray-400">Match</p>
-            <p class="font-mono text-2xl font-bold text-gray-900">{% if job.score is not None %}{{ job.score|floatformat:2 }}{% else %}—{% endif %}</p>
+            <p class="font-mono text-2xl font-bold text-gray-900">{% if job.score is not None %}{% widthratio job.score 1 100 %}%{% else %}—{% endif %}</p>
           </div>
         </div>
       </div>

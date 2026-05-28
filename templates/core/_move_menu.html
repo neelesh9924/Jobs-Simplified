@@ -11,7 +11,7 @@
     <button type="button"
             hx-post="{% url 'set_status' job.id %}"
             hx-vals='{"status": "{{ value }}", "scope": "{{ scope }}"}'
-            hx-target="{{ target }}" hx-swap="{{ swap }}"
+            hx-target="{{ target }}" hx-swap="{{ swap }}"{% if include %} hx-include="{{ include }}"{% endif %}
             @click="open = false"
             class="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition hover:bg-gray-50 {% if value == current %}font-semibold text-brand-700{% else %}text-gray-600{% endif %}">
       {{ label }}{% if value == current %}<i data-lucide="check" class="h-3 w-3"></i>{% endif %}
@@ -21,7 +21,7 @@
     <button type="button"
             hx-post="{% url 'set_status' job.id %}"
             hx-vals='{"status": "remove", "scope": "{{ scope }}"}'
-            hx-target="{{ target }}" hx-swap="{{ swap }}"
+            hx-target="{{ target }}" hx-swap="{{ swap }}"{% if include %} hx-include="{{ include }}"{% endif %}
             @click="open = false"
             class="flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50">
       <i data-lucide="trash-2" class="h-3 w-3"></i> Remove from pipeline

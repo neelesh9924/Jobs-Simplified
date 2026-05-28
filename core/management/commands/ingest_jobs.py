@@ -5,10 +5,12 @@ from django.utils import timezone
 from core.models import Job, IngestRun, Profile
 from core.sources.remoteok import RemoteOKAdapter
 from core.sources.greenhouse import GreenhouseAdapter
+from core.sources.lever import LeverAdapter
+from core.sources.ashby import AshbyAdapter
 from core.services.region import infer_region
 from core.services.scoring import score_job
 
-SOURCES = ["remoteok", "greenhouse"]
+SOURCES = ["remoteok", "greenhouse", "lever", "ashby"]
 
 
 def _build_adapter(source_key):
@@ -16,6 +18,10 @@ def _build_adapter(source_key):
         return RemoteOKAdapter()
     if source_key == "greenhouse":
         return GreenhouseAdapter(boards=settings.GREENHOUSE_BOARDS)
+    if source_key == "lever":
+        return LeverAdapter(boards=settings.LEVER_BOARDS)
+    if source_key == "ashby":
+        return AshbyAdapter(boards=settings.ASHBY_BOARDS)
     raise CommandError(f"Unknown source: {source_key}")
 
 
@@ -57,12 +63,12 @@ class Command(BaseCommand):
 
         skills = profile.skills if profile else []
         pref_keywords = profile.prefs.get("keywords", []) if profile else []
+        seen_ids = []
 
         for nj in jobs:
             try:
                 region = infer_region(nj.location)
-                job_text = f"{nj.title} {nj.company} {nj.description}"
-                job_score = score_job(job_text, nj.tags, skills, pref_keywords)
+                job_score = score_job(nj.title, nj.description, nj.tags, skills, pref_keywords)
 
                 obj, created = Job.objects.update_or_create(
                     source_key=nj.source_key,
@@ -88,11 +94,24 @@ class Command(BaseCommand):
                     new_count += 1
                 else:
                     updated_count += 1
+                seen_ids.append(nj.external_id)
             except Exception as exc:
                 errors.append(f"{nj.external_id}: {exc}")
 
+        # Stale-job expiry: anything from this source not seen in this run is
+        # marked gone (kept for history, hidden from lists). Guarded by a
+        # non-empty fetch so a transient empty response can't wipe the board.
+        gone_count = 0
+        if seen_ids:
+            gone_count = (
+                Job.objects.filter(source_key=source_key, is_gone=False)
+                .exclude(external_id__in=seen_ids)
+                .update(is_gone=True)
+            )
+
         run.new_count = new_count
         run.updated_count = updated_count
+        run.gone_count = gone_count
         run.error_count = len(errors)
         run.error_log = "\n".join(errors)
         run.finished_at = timezone.now()
@@ -101,6 +120,6 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"[{source_key}] fetched={run.fetched_count} "
-                f"new={new_count} updated={updated_count} errors={len(errors)}"
+                f"new={new_count} updated={updated_count} gone={gone_count} errors={len(errors)}"
             )
         )
