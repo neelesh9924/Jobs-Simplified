@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}JobHunt{% endblock %}</title>
+
+  <!-- Tailwind + design tokens -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          boxShadow: {
+            card: '0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.05)',
+            float: '0 4px 24px -4px rgb(0 0 0 / 0.10)',
+          },
+          colors: {
+            brand: {
+              50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',
+              500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+  <!-- HTMX, Alpine, Lucide icons -->
+  <script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    [x-cloak]{display:none!important}
+    .htmx-indicator{opacity:0;transition:opacity .2s ease}
+    .htmx-request .htmx-indicator{opacity:1}
+    .htmx-request.htmx-indicator{opacity:1}
+    ::-webkit-scrollbar{width:10px;height:10px}
+    ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:8px;border:2px solid #fff}
+    ::-webkit-scrollbar-thumb:hover{background:#9ca3af}
+    body{-webkit-font-smoothing:antialiased}
+  </style>
+</head>
+<body class="h-full bg-gray-50 text-gray-900 font-sans antialiased"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      x-data="{ sidebar: false }">
+
+  <!-- Mobile sidebar backdrop -->
+  <div x-cloak x-show="sidebar" @click="sidebar=false"
+       class="fixed inset-0 z-30 bg-gray-900/40 lg:hidden"
+       x-transition.opacity></div>
+
+  <!-- Sidebar -->
+  <aside class="fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-white transition-transform duration-200 lg:translate-x-0"
+         :class="sidebar ? 'translate-x-0' : '-translate-x-full'">
+    <div class="flex h-full flex-col">
+
+      <!-- Brand -->
+      <div class="flex h-16 items-center gap-2.5 px-5 border-b border-gray-100">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 text-white shadow-sm">
+          <i data-lucide="briefcase" class="h-4.5 w-4.5"></i>
+        </div>
+        <span class="text-[15px] font-bold tracking-tight">JobHunt</span>
+      </div>
+
+      <!-- Nav -->
+      <nav class="flex-1 space-y-1 px-3 py-4">
+        {% include "core/_nav_item.html" with icon="layout-grid" label="Jobs" url_name="job_list" key="jobs" %}
+        {% include "core/_nav_item.html" with icon="sparkles" label="Tailored" href="/jobs/?tailored=1" key="tailored" %}
+        {% include "core/_nav_item.html" with icon="send" label="Review queue" url_name="queue" key="queue" %}
+        {% include "core/_nav_item.html" with icon="kanban" label="Tracker" url_name="tracker" key="tracker" %}
+        {% include "core/_nav_item.html" with icon="user-round" label="Profile" href="/admin/core/profile/" key="profile" %}
+      </nav>
+
+      <!-- Profile footer -->
+      {% if sidebar_profile %}
+      <div class="border-t border-gray-100 p-3">
+        <div class="flex items-center gap-3 rounded-lg px-2 py-2">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+            {{ sidebar_profile.structured_resume.name|default:"?"|slice:":1"|upper }}
+          </div>
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium">{{ sidebar_profile.structured_resume.name|default:"Your Profile" }}</p>
+            <p class="truncate text-xs text-gray-400">{{ sidebar_profile.structured_resume.title|default:"—" }}</p>
+          </div>
+        </div>
+        <div class="mt-1 grid grid-cols-2 gap-1.5">
+          <a href="{% url 'editor' 'base' sidebar_profile.id %}"
+             class="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50">
+            <i data-lucide="file-code-2" class="h-3.5 w-3.5"></i> Edit
+          </a>
+          <a href="{% url 'base_resume_pdf' %}"
+             class="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50">
+            <i data-lucide="download" class="h-3.5 w-3.5"></i> PDF
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Main column -->
+  <div class="lg:pl-64">
+    <!-- Topbar -->
+    <header class="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-gray-200 bg-white/80 px-5 backdrop-blur-md lg:px-8">
+      <button @click="sidebar=true" class="lg:hidden -ml-1 rounded-md p-2 text-gray-500 hover:bg-gray-100">
+        <i data-lucide="menu" class="h-5 w-5"></i>
+      </button>
+      <div class="min-w-0 flex-1">
+        <h1 class="truncate text-[15px] font-semibold text-gray-900">{% block page_title %}{% endblock %}</h1>
+      </div>
+      {% block topbar_actions %}{% endblock %}
+    </header>
+
+    <!-- Page -->
+    <main class="px-5 py-6 lg:px-8 lg:py-8">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    lucide.createIcons();
+    document.body.addEventListener('htmx:afterSwap', () => lucide.createIcons());
+    document.body.addEventListener('htmx:afterSettle', () => lucide.createIcons());
+
+    // Fixed-position dropdown that escapes any parent overflow and always
+    // stays within the viewport (flips above when there's no room below).
+    function moveMenu() {
+      return {
+        open: false,
+        toggle() { this.open ? (this.open = false) : this.show(); },
+        show() {
+          this.open = true;
+          this.$nextTick(() => {
+            this.place();
+            this._onScroll = () => { this.open = false; };
+            window.addEventListener('scroll', this._onScroll, { capture: true, once: true });
+            window.addEventListener('resize', this._onScroll, { once: true });
+          });
+        },
+        place() {
+          const t = this.$refs.trigger.getBoundingClientRect();
+          const m = this.$refs.menu;
+          const mw = m.offsetWidth, mh = m.offsetHeight;
+          const vw = innerWidth, vh = innerHeight, gap = 6, pad = 8;
+          let left = Math.max(pad, Math.min(t.right - mw, vw - mw - pad));
+          let top = t.bottom + gap;
+          if (top + mh > vh - pad) {              // not enough room below
+            const above = t.top - mh - gap;
+            top = above >= pad ? above : Math.max(pad, vh - mh - pad);
+          }
+          m.style.left = left + 'px';
+          m.style.top = top + 'px';
+        },
+      };
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

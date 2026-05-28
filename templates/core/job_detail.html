@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }} — JobHunt{% endblock %}
+{% block page_title %}Job detail{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'job_list' %}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+  <i data-lucide="arrow-left" class="h-4 w-4"></i> Back
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl space-y-6">
+
+  <!-- Hero -->
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card">
+    <div class="border-b border-gray-100 bg-gradient-to-br from-brand-50/60 to-violet-50/40 px-6 py-5">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0">
+          <h2 class="text-xl font-bold tracking-tight text-gray-900">{{ job.title }}</h2>
+          <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+            <span class="inline-flex items-center gap-1.5 font-medium text-gray-700"><i data-lucide="building-2" class="h-4 w-4 text-gray-400"></i>{{ job.company }}</span>
+            {% if job.location %}<span class="inline-flex items-center gap-1.5"><i data-lucide="map-pin" class="h-4 w-4 text-gray-400"></i>{{ job.location }}</span>{% endif %}
+            {% if job.region %}<span class="rounded-full bg-white px-2 py-0.5 text-xs font-medium capitalize text-gray-600 ring-1 ring-gray-200">{{ job.region_override|default:job.region }}</span>{% endif %}
+            <span class="inline-flex items-center gap-1.5 capitalize"><i data-lucide="rss" class="h-4 w-4 text-gray-400"></i>{{ job.source_key }}</span>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-1.5">
+            {% for tag in job.tags|slice:":8" %}
+              <span class="rounded-md bg-white px-2 py-0.5 text-xs font-medium text-brand-600 ring-1 ring-brand-100">{{ tag }}</span>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Score dial -->
+        <div class="flex shrink-0 items-center gap-4">
+          <div class="text-right">
+            <p class="text-[11px] font-medium uppercase tracking-wider text-gray-400">Match</p>
+            <p class="font-mono text-2xl font-bold text-gray-900">{% if job.score is not None %}{{ job.score|floatformat:2 }}{% else %}—{% endif %}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="mt-5 flex flex-wrap items-center gap-2.5">
+        <button type="button"
+                hx-post="{% url 'tailor_job' job.id %}"
+                hx-target="#tailor-panel"
+                hx-swap="innerHTML"
+                hx-indicator="#tailor-loading"
+                hx-disabled-elt="this"
+                class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-brand-700 hover:to-violet-700 disabled:opacity-60">
+          <i data-lucide="sparkles" class="h-4 w-4"></i>
+          {% if latest %}Re-tailor resume{% else %}Tailor resume{% endif %}
+        </button>
+        {% if latest %}
+        <a href="{% url 'editor' 'version' latest.id %}"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+          <i data-lucide="file-code-2" class="h-4 w-4"></i> Edit LaTeX
+        </a>
+        <a href="{% url 'resume_pdf' latest.id %}"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+          <i data-lucide="download" class="h-4 w-4"></i> Download PDF
+        </a>
+        {% endif %}
+        <a href="{{ job.url }}" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+          <i data-lucide="external-link" class="h-4 w-4"></i> Apply on site
+        </a>
+
+        <span class="mx-1 hidden h-6 w-px bg-gray-200 sm:block"></span>
+        {% include "core/_status_widget.html" %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid: tailoring (left) + description (right) -->
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+
+    <!-- Tailoring output -->
+    <div class="lg:col-span-2">
+      <div class="relative">
+        <!-- Loading overlay -->
+        <div id="tailor-loading" class="htmx-indicator absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm">
+          <div class="flex flex-col items-center gap-3 text-center">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-500 text-white shadow-float">
+              <i data-lucide="loader-circle" class="h-6 w-6 animate-spin"></i>
+            </span>
+            <div>
+              <p class="text-sm font-semibold text-gray-900">Tailoring with Gemini Flash…</p>
+              <p class="mt-0.5 text-xs text-gray-500">Re-emphasizing your resume against this role · ~10s</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="tailor-panel">
+          {% include "core/_tailor_panel.html" %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Job description -->
+    <aside class="lg:col-span-1">
+      <div class="rounded-xl border border-gray-200 bg-white shadow-card">
+        <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-3">
+          <i data-lucide="file-text" class="h-4 w-4 text-gray-400"></i>
+          <h3 class="text-sm font-semibold text-gray-700">Job description</h3>
+        </div>
+        <div class="max-h-[calc(100vh-13rem)] overflow-y-auto px-5 py-4">
+          <div class="prose prose-sm max-w-none text-sm leading-relaxed text-gray-600 [&_a]:text-brand-600 [&_h1]:text-base [&_h2]:text-sm [&_strong]:text-gray-800">
+            {{ job.description|safe }}
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% if latest %}
+<div x-data="{ tab: 'diff' }" class="space-y-6">
+
+  <!-- Result card -->
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card">
+
+    <!-- Header + tabs -->
+    <div class="flex items-center justify-between border-b border-gray-100 px-5 pt-3">
+      <div class="flex gap-1">
+        <button @click="tab='diff'" :class="tab==='diff' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="border-b-2 px-3 pb-3 text-sm font-medium transition">
+          <span class="inline-flex items-center gap-1.5"><i data-lucide="git-compare-arrows" class="h-4 w-4"></i> Resume diff</span>
+        </button>
+        <button @click="tab='cover'" :class="tab==='cover' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="border-b-2 px-3 pb-3 text-sm font-medium transition">
+          <span class="inline-flex items-center gap-1.5"><i data-lucide="mail" class="h-4 w-4"></i> Cover letter</span>
+        </button>
+      </div>
+      <span class="hidden items-center gap-1.5 pb-3 text-xs text-gray-400 sm:inline-flex">
+        <i data-lucide="sparkles" class="h-3.5 w-3.5 text-violet-400"></i>
+        {{ latest.provider }} · {{ latest.created_at|date:"M j, H:i" }}
+      </span>
+    </div>
+
+    <!-- Diff tab -->
+    <div x-show="tab==='diff'" x-cloak>
+      {% if diff %}
+      <div class="divide-y divide-gray-100">
+        {% for row in diff %}
+        <div class="px-5 py-4 {% if row.changed %}bg-amber-50/40{% endif %}">
+          <div class="mb-2 flex items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ row.section }}</span>
+            {% if row.changed %}
+              <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"><i data-lucide="pencil" class="h-2.5 w-2.5"></i>changed</span>
+            {% else %}
+              <span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">unchanged</span>
+            {% endif %}
+          </div>
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div class="rounded-lg border border-gray-200 bg-gray-50/70 p-3">
+              <p class="mb-1 text-[10px] font-medium uppercase tracking-wider text-gray-400">Original</p>
+              <p class="whitespace-pre-wrap text-sm leading-relaxed text-gray-500">{{ row.base|default:"—" }}</p>
+            </div>
+            <div class="rounded-lg border p-3 {% if row.changed %}border-brand-200 bg-brand-50/40{% else %}border-gray-200 bg-white{% endif %}">
+              <p class="mb-1 text-[10px] font-medium uppercase tracking-wider {% if row.changed %}text-brand-500{% else %}text-gray-400{% endif %}">Tailored</p>
+              <p class="whitespace-pre-wrap text-sm leading-relaxed {% if row.changed %}font-medium text-gray-800{% else %}text-gray-600{% endif %}">{{ row.tailored|default:"—" }}</p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="px-5 py-8 text-center text-sm text-gray-400">No comparable sections — your base resume looks empty. Fill in work/projects in your profile, then re-tailor.</p>
+      {% endif %}
+    </div>
+
+    <!-- Cover letter tab -->
+    <div x-show="tab==='cover'" x-cloak
+         x-data="{ copied:false }">
+      <div class="flex items-center justify-end gap-2 px-5 pt-4">
+        <button @click="navigator.clipboard.writeText($refs.cl.innerText); copied=true; setTimeout(()=>copied=false,1500)"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50">
+          <i data-lucide="copy" class="h-3.5 w-3.5"></i>
+          <span x-text="copied ? 'Copied!' : 'Copy'"></span>
+        </button>
+      </div>
+      <div class="px-6 pb-6 pt-2">
+        <div x-ref="cl" class="whitespace-pre-wrap text-[15px] leading-7 text-gray-700">{{ latest.cover_letter|default:"No cover letter generated." }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version history -->
+  {% if versions.count > 1 %}
+  <div class="rounded-xl border border-gray-200 bg-white shadow-card">
+    <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-3">
+      <i data-lucide="history" class="h-4 w-4 text-gray-400"></i>
+      <h3 class="text-sm font-semibold text-gray-700">Version history</h3>
+      <span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">{{ versions.count }}</span>
+    </div>
+    <ul class="divide-y divide-gray-100">
+      {% for v in versions %}
+      <li class="flex items-center justify-between px-5 py-2.5">
+        <div class="flex items-center gap-2 text-sm">
+          {% if forloop.first %}<span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">latest</span>{% endif %}
+          <span class="text-gray-600">{{ v.label }}</span>
+          <span class="text-gray-300">·</span>
+          <span class="text-xs text-gray-400">{{ v.created_at|date:"M j, H:i" }}</span>
+        </div>
+        <a href="{% url 'resume_pdf' v.id %}" class="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+          <i data-lucide="download" class="h-3.5 w-3.5"></i> PDF
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+</div>
+
+{% else %}
+<!-- Empty state -->
+<div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center">
+  <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-500 text-white shadow-float">
+    <i data-lucide="sparkles" class="h-7 w-7"></i>
+  </span>
+  <h3 class="mt-4 text-base font-semibold text-gray-900">No tailored resume yet</h3>
+  <p class="mt-1 max-w-sm text-sm text-gray-500">Generate a resume re-emphasized for this exact role, plus a cover letter draft — in about 10 seconds. Nothing fabricated, only your real experience reordered.</p>
+  <button type="button"
+          hx-post="{% url 'tailor_job' job.id %}"
+          hx-target="#tailor-panel"
+          hx-swap="innerHTML"
+          hx-indicator="#tailor-loading"
+          hx-disabled-elt="this"
+          class="mt-5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-brand-700 hover:to-violet-700 disabled:opacity-60">
+    <i data-lucide="sparkles" class="h-4 w-4"></i> Tailor resume
+  </button>
+</div>
+{% endif %}

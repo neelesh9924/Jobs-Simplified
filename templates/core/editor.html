@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}LaTeX editor — JobHunt{% endblock %}
+{% block page_title %}LaTeX editor · {{ title }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% if kind == 'version' %}{% url 'job_detail' obj_job_id %}{% else %}{% url 'job_list' %}{% endif %}"
+   class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+  <i data-lucide="arrow-left" class="h-4 w-4"></i> Back
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-3" style="height: calc(100vh - 8rem)"
+     x-data="editor()">
+
+  <!-- Toolbar -->
+  <div class="flex shrink-0 items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-card">
+    <div class="flex items-center gap-2 text-sm">
+      <i data-lucide="file-code-2" class="h-4 w-4 text-gray-400"></i>
+      <span class="font-medium text-gray-700">main.tex</span>
+      <span x-show="edited" class="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">edited</span>
+      <span x-show="dirty" x-cloak class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">unsaved</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <a :href="downloadUrl"
+         class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+        <i data-lucide="download" class="h-4 w-4"></i> Download PDF
+      </a>
+      <button @click="recompile()" :disabled="compiling"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60">
+        <i x-show="!compiling" data-lucide="play" class="h-4 w-4"></i>
+        <i x-show="compiling" x-cloak data-lucide="loader-circle" class="h-4 w-4 animate-spin"></i>
+        <span x-text="compiling ? 'Compiling…' : 'Recompile'"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Split -->
+  <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
+
+    <!-- Editor pane -->
+    <div class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card">
+      <div class="flex shrink-0 items-center gap-2 border-b border-gray-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <i data-lucide="code" class="h-3.5 w-3.5"></i> Code editor
+      </div>
+      <div class="relative min-h-0 flex-1">
+        <textarea id="code">{{ latex }}</textarea>
+        <!-- Error log -->
+        <div x-show="error" x-cloak
+             class="absolute inset-x-0 bottom-0 max-h-1/2 overflow-auto border-t border-red-200 bg-red-50 p-3">
+          <div class="mb-1 flex items-center justify-between">
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700">
+              <i data-lucide="circle-alert" class="h-3.5 w-3.5"></i> Compile error
+            </span>
+            <button @click="error=''" class="text-red-400 hover:text-red-600"><i data-lucide="x" class="h-3.5 w-3.5"></i></button>
+          </div>
+          <pre class="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-red-700" x-text="error"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview pane -->
+    <div class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card">
+      <div class="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-2">
+        <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <i data-lucide="file-text" class="h-3.5 w-3.5"></i> Preview
+        </span>
+        <span x-show="compiling" x-cloak class="inline-flex items-center gap-1.5 text-xs text-gray-400">
+          <i data-lucide="loader-circle" class="h-3 w-3 animate-spin"></i> rendering
+        </span>
+      </div>
+      <div class="min-h-0 flex-1 bg-gray-100">
+        <iframe x-ref="preview" class="h-full w-full" :src="previewUrl"></iframe>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/stex/stex.min.js"></script>
+<style>
+  .CodeMirror { height: 100%; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.55; }
+  .CodeMirror-gutters { background: #fafafa; border-right: 1px solid #f0f0f0; }
+</style>
+<script>
+  function editor() {
+    return {
+      cm: null,
+      compiling: false,
+      error: '',
+      edited: {{ edited|yesno:"true,false" }},
+      dirty: false,
+      previewUrl: "{% url 'editor_preview' kind pk %}",
+      compileUrl: "{% url 'editor_compile' kind pk %}",
+      downloadUrl: "{% if kind == 'version' %}{% url 'resume_pdf' pk %}{% else %}{% url 'base_resume_pdf' %}{% endif %}",
+      csrf: "{{ csrf_token }}",
+
+      init() {
+        this.cm = CodeMirror.fromTextArea(document.getElementById('code'), {
+          mode: 'stex', lineNumbers: true, lineWrapping: true,
+          viewportMargin: Infinity,
+        });
+        this.cm.on('change', () => { this.dirty = true; });
+        // Ctrl/Cmd+S or Ctrl/Cmd+Enter to recompile
+        this.cm.setOption('extraKeys', {
+          'Cmd-S': () => this.recompile(), 'Ctrl-S': () => this.recompile(),
+          'Cmd-Enter': () => this.recompile(), 'Ctrl-Enter': () => this.recompile(),
+        });
+        window.addEventListener('keydown', (e) => {
+          if ((e.metaKey || e.ctrlKey) && (e.key === 's')) { e.preventDefault(); this.recompile(); }
+        });
+      },
+
+      async recompile() {
+        if (this.compiling) return;
+        this.compiling = true; this.error = '';
+        try {
+          const body = new URLSearchParams({ latex: this.cm.getValue() });
+          const res = await fetch(this.compileUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': this.csrf, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+          });
+          if (res.ok && res.headers.get('Content-Type')?.includes('pdf')) {
+            const blob = await res.blob();
+            this.$refs.preview.src = URL.createObjectURL(blob);
+            this.edited = true; this.dirty = false;
+          } else {
+            this.error = await res.text();
+          }
+        } catch (e) {
+          this.error = String(e);
+        } finally {
+          this.compiling = false;
+        }
+      },
+    };
+  }
+</script>
+{% endblock %}

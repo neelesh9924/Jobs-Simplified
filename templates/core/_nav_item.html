@@ -1,0 +1,19 @@
+{% comment %}
+  Sidebar nav item. Params: icon, label, key.
+  Either url_name (reversed) or href (literal). key="_soon" renders disabled.
+{% endcomment %}
+{% if key == "_soon" %}
+  <span class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-300 cursor-not-allowed select-none">
+    <i data-lucide="{{ icon }}" class="h-4.5 w-4.5"></i>
+    <span>{{ label }}</span>
+    <span class="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-gray-400">soon</span>
+  </span>
+{% else %}
+  {% if url_name %}{% url url_name as item_href %}{% else %}{% with item_href=href %}{% endwith %}{% endif %}
+  <a href="{% if url_name %}{% url url_name %}{% else %}{{ href }}{% endif %}"
+     class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition
+       {% if active_nav == key %}bg-brand-50 text-brand-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+    <i data-lucide="{{ icon }}" class="h-4.5 w-4.5 {% if active_nav == key %}text-brand-600{% else %}text-gray-400 group-hover:text-gray-500{% endif %}"></i>
+    <span>{{ label }}</span>
+  </a>
+{% endif %}

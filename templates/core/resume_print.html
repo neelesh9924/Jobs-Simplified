@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ resume.name|default:"Resume" }} — {{ version.label }}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; color: #111; max-width: 750px; margin: 40px auto; padding: 0 24px; }
+    h1 { font-size: 20pt; font-weight: bold; }
+    h2 { font-size: 11pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #ccc; margin: 18px 0 6px; padding-bottom: 2px; color: #333; }
+    h3 { font-size: 11pt; font-weight: bold; margin: 10px 0 2px; }
+    p, li { line-height: 1.5; }
+    ul { padding-left: 18px; margin: 4px 0; }
+    .subtitle { color: #555; font-size: 10.5pt; margin: 2px 0 6px; }
+    .meta { color: #666; font-size: 10pt; }
+    .skills { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+    .toolbar { position: sticky; top: 0; display: flex; gap: 8px; justify-content: flex-end; padding: 12px 0; margin-bottom: 8px; border-bottom: 1px solid #eee; }
+    .toolbar a, .toolbar button { font-family: Inter, system-ui, sans-serif; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; color: #374151; cursor: pointer; text-decoration: none; }
+    .toolbar .primary { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    @media print {
+      body { margin: 0; }
+      @page { margin: 1.5cm 2cm; }
+      .toolbar { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    {% if version.job_id %}<a href="{% url 'job_detail' version.job_id %}">← Back to job</a>{% endif %}
+    <button class="primary" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <h1>{{ resume.name|default:"" }}</h1>
+  {% if resume.title %}<p class="subtitle">{{ resume.title }}</p>{% endif %}
+  {% if resume.email or resume.phone or resume.location or resume.links %}
+  <p class="meta" style="margin-bottom:6px">
+    {% if resume.email %}{{ resume.email }}{% endif %}
+    {% if resume.phone %} · {{ resume.phone }}{% endif %}
+    {% if resume.location %} · {{ resume.location }}{% endif %}
+    {% for link in resume.links %} · {{ link }}{% endfor %}
+  </p>
+  {% endif %}
+
+  {% if resume.summary %}
+  <h2>Summary</h2>
+  <p>{{ resume.summary }}</p>
+  {% endif %}
+
+  {% if resume.work %}
+  <h2>Experience</h2>
+  {% for job in resume.work %}
+  <div style="margin-bottom:10px">
+    <h3>{{ job.role|default:"" }} <span style="font-weight:normal">at {{ job.company|default:"" }}</span></h3>
+    {% if job.dates %}<p class="meta">{{ job.dates }}</p>{% endif %}
+    {% if job.bullets %}
+    <ul>
+      {% for bullet in job.bullets %}<li>{{ bullet }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if resume.projects %}
+  <h2>Projects</h2>
+  {% for project in resume.projects %}
+  <div style="margin-bottom:10px">
+    <h3>{{ project.name|default:"" }}</h3>
+    {% if project.description %}<p>{{ project.description }}</p>{% endif %}
+    {% if project.bullets %}
+    <ul>
+      {% for bullet in project.bullets %}<li>{{ bullet }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if resume.education %}
+  <h2>Education</h2>
+  {% for edu in resume.education %}
+  <div style="margin-bottom:6px">
+    <h3>{{ edu.degree|default:"" }}</h3>
+    <p class="meta">{{ edu.institution|default:"" }}{% if edu.dates %} · {{ edu.dates }}{% endif %}</p>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if resume.skills %}
+  <h2>Skills</h2>
+  <div class="skills">
+    {% for skill in resume.skills %}<span>{{ skill }}</span>{% endfor %}
+  </div>
+  {% endif %}
+
+</body>
+</html>

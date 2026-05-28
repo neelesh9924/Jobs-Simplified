@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Jobs — JobHunt{% endblock %}
+{% block page_title %}{% if filters.tailored %}Tailored Jobs{% else %}Jobs{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl space-y-6">
+
+  <!-- Stat cards -->
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    {% include "core/_stat_card.html" with icon="database" label="Total jobs" value=stats.total tone="slate" %}
+    {% include "core/_stat_card.html" with icon="target" label="Scored" value=stats.scored tone="indigo" %}
+    {% include "core/_stat_card.html" with icon="sparkles" label="Tailored" value=stats.tailored tone="violet" %}
+    {% include "core/_stat_card.html" with icon="check-check" label="Applied" value=stats.applied tone="emerald" %}
+  </div>
+
+  <!-- Filter bar -->
+  <form id="filter-form"
+        hx-get="{% url 'job_list_fragment' %}"
+        hx-target="#job-results"
+        hx-swap="innerHTML"
+        hx-trigger="change, input from:#q delay:350ms"
+        hx-indicator="#list-loading"
+        hx-push-url="false"
+        class="rounded-xl border border-gray-200 bg-white p-3 shadow-card">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+
+      <!-- Search -->
+      <div class="relative flex-1">
+        <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"></i>
+        <input id="q" type="text" name="q" value="{{ filters.q }}" autocomplete="off"
+               placeholder="Search title, company, or description…"
+               class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100" />
+      </div>
+
+      <!-- Selects -->
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex lg:items-center">
+        {% include "core/_select.html" with name="source" label="Source" value=filters.source options=sources %}
+        {% include "core/_select.html" with name="region" label="Region" value=filters.region options=regions %}
+
+        <select name="status" class="rounded-lg border border-gray-200 bg-white py-2 px-2.5 text-sm text-gray-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100">
+          <option value="">Any status</option>
+          <option value="new"        {% if filters.status == "new" %}selected{% endif %}>New</option>
+          <option value="interested" {% if filters.status == "interested" %}selected{% endif %}>Interested</option>
+          <option value="tailoring"  {% if filters.status == "tailoring" %}selected{% endif %}>Tailoring</option>
+          <option value="ready"      {% if filters.status == "ready" %}selected{% endif %}>Ready</option>
+          <option value="applied"    {% if filters.status == "applied" %}selected{% endif %}>Applied</option>
+        </select>
+
+        <select name="sort" class="rounded-lg border border-gray-200 bg-white py-2 px-2.5 text-sm text-gray-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100">
+          <option value="-score"     {% if filters.sort == "-score" %}selected{% endif %}>Best match</option>
+          <option value="score"      {% if filters.sort == "score" %}selected{% endif %}>Worst match</option>
+          <option value="-posted_at" {% if filters.sort == "-posted_at" %}selected{% endif %}>Newest</option>
+          <option value="posted_at"  {% if filters.sort == "posted_at" %}selected{% endif %}>Oldest</option>
+          <option value="company"    {% if filters.sort == "company" %}selected{% endif %}>Company A–Z</option>
+        </select>
+      </div>
+
+      {% if filters.tailored %}<input type="hidden" name="tailored" value="1">{% endif %}
+    </div>
+  </form>
+
+  <!-- Presets -->
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="text-xs font-medium text-gray-400">Presets:</span>
+    {% for p in presets %}
+    <span class="group inline-flex items-center overflow-hidden rounded-full border border-gray-200 bg-white text-xs">
+      <a href="?{{ p.qs }}" class="py-1 pl-3 pr-2 font-medium text-gray-600 transition hover:bg-gray-50 hover:text-brand-700">{{ p.name }}</a>
+      <form method="post" action="{% url 'delete_preset' p.id %}" class="flex">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="border-l border-gray-200 px-1.5 py-1 text-gray-300 transition hover:bg-red-50 hover:text-red-500" title="Delete preset">
+          <i data-lucide="x" class="h-3 w-3"></i>
+        </button>
+      </form>
+    </span>
+    {% empty %}
+    <span class="text-xs text-gray-300">none saved yet</span>
+    {% endfor %}
+
+    <!-- Save current -->
+    <div x-data="{ open: false }" class="relative">
+      <button @click="open = !open" type="button"
+              class="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-3 py-1 text-xs font-medium text-gray-500 transition hover:border-brand-400 hover:text-brand-700">
+        <i data-lucide="bookmark-plus" class="h-3.5 w-3.5"></i> Save current
+      </button>
+      <form method="post" action="{% url 'save_preset' %}" x-show="open" @click.outside="open=false" x-cloak x-transition
+            class="absolute left-0 z-30 mt-1 flex w-64 items-center gap-2 rounded-lg border border-gray-200 bg-white p-2 shadow-float">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="hidden" name="q" value="{{ filters.q }}">
+        <input type="hidden" name="source" value="{{ filters.source }}">
+        <input type="hidden" name="region" value="{{ filters.region }}">
+        <input type="hidden" name="status" value="{{ filters.status }}">
+        <input type="hidden" name="sort" value="{{ filters.sort }}">
+        <input type="hidden" name="tailored" value="{{ filters.tailored }}">
+        <input type="hidden" name="min_score" value="{{ filters.min_score }}">
+        <input type="text" name="name" placeholder="Preset name…" required autocomplete="off"
+               class="min-w-0 flex-1 rounded-md border border-gray-200 px-2 py-1 text-xs outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100">
+        <button type="submit" class="rounded-md bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700">Save</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="relative">
+    <div id="list-loading" class="htmx-indicator pointer-events-none absolute inset-x-0 -top-2 z-10 flex justify-center">
+      <span class="inline-flex items-center gap-2 rounded-full bg-brand-600 px-3 py-1 text-xs font-medium text-white shadow-float">
+        <i data-lucide="loader-circle" class="h-3.5 w-3.5 animate-spin"></i> Updating…
+      </span>
+    </div>
+    <div id="job-results">
+      {% include "core/job_list_fragment.html" %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

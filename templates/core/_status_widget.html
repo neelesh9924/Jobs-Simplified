@@ -1,0 +1,22 @@
+{% comment %} Status control on job detail. Swapped via outerHTML on change. {% endcomment %}
+<div id="status-widget" class="inline-flex items-center gap-2">
+  {% if app %}
+    <span class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium
+      {% if app.status == 'applied' %}bg-blue-50 text-blue-700
+      {% elif app.status == 'interview' %}bg-violet-50 text-violet-700
+      {% elif app.status == 'offer' %}bg-emerald-50 text-emerald-700
+      {% elif app.status == 'rejected' or app.status == 'withdrawn' %}bg-gray-100 text-gray-500
+      {% else %}bg-gray-100 text-gray-700{% endif %}">
+      <i data-lucide="circle-dot" class="h-4 w-4"></i> {{ app.get_status_display }}
+    </span>
+    {% include "core/_move_menu.html" with job=job all_statuses=all_statuses scope="detail" target="#status-widget" swap="outerHTML" current=app.status %}
+  {% else %}
+    <button type="button"
+            hx-post="{% url 'set_status' job.id %}"
+            hx-vals='{"status": "interested", "scope": "detail"}'
+            hx-target="#status-widget" hx-swap="outerHTML"
+            class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+      <i data-lucide="plus" class="h-4 w-4"></i> Add to pipeline
+    </button>
+  {% endif %}
+</div>

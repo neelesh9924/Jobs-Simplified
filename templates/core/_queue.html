@@ -1,0 +1,114 @@
+{% comment %} Renders inside #queue. Ready-to-submit roles + follow-ups due. {% endcomment %}
+
+<!-- Follow-ups due -->
+{% if followups %}
+<div class="mb-6">
+  <h2 class="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+    <i data-lucide="bell-ring" class="h-4 w-4 text-amber-500"></i> Follow-ups due
+    <span class="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">{{ followups_count }}</span>
+  </h2>
+  <div class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-amber-200 bg-amber-50/40">
+    {% for app in followups %}
+    <div class="flex items-center gap-3 px-4 py-2.5">
+      <i data-lucide="clock" class="h-4 w-4 shrink-0 text-amber-500"></i>
+      <a href="{% url 'job_detail' app.job.id %}" class="min-w-0 flex-1">
+        <span class="text-sm font-medium text-gray-800">{{ app.job.title }}</span>
+        <span class="text-xs text-gray-500">· {{ app.job.company }}</span>
+      </a>
+      <span class="hidden text-xs text-gray-400 sm:inline">due {{ app.follow_up_at|date:"M j" }} · {{ app.get_status_display }}</span>
+      <div class="flex items-center gap-1.5">
+        <button hx-post="{% url 'snooze_followup' app.job.id %}" hx-target="#queue" hx-swap="innerHTML"
+                class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50">+7d</button>
+        <button hx-post="{% url 'set_status' app.job.id %}" hx-vals='{"status":"screening","scope":"queue"}'
+                hx-target="#queue" hx-swap="innerHTML"
+                class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50">Got reply</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Ready to submit -->
+<h2 class="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+  <i data-lucide="send" class="h-4 w-4 text-brand-500"></i> Ready to submit
+  <span class="rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700">{{ ready_count }}</span>
+</h2>
+
+{% if ready %}
+<div class="space-y-4">
+  {% for app in ready %}
+  {% with version=app.job.resume_versions.first %}
+  <div x-data="{ showLetter: false }" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card">
+    <!-- header -->
+    <div class="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+      <div class="min-w-0">
+        <a href="{% url 'job_detail' app.job.id %}" class="text-base font-semibold text-gray-900 hover:text-brand-700">{{ app.job.title }}</a>
+        <p class="mt-0.5 text-sm text-gray-500">
+          {{ app.job.company }}{% if app.job.location %} · {{ app.job.location }}{% endif %}
+          {% if app.job.region %}· <span class="capitalize">{{ app.job.region_override|default:app.job.region }}</span>{% endif %}
+        </p>
+      </div>
+      <span class="shrink-0 font-mono text-sm font-semibold text-gray-400">
+        {% if app.job.score is not None %}{{ app.job.score|floatformat:2 }}{% endif %}
+      </span>
+    </div>
+
+    <!-- attached docs -->
+    <div class="flex flex-wrap items-center gap-2 px-5 py-3 text-sm">
+      {% if version %}
+        <a href="{% url 'resume_pdf' version.id %}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 font-medium text-gray-700 transition hover:bg-gray-50">
+          <i data-lucide="file-text" class="h-4 w-4"></i> Résumé PDF
+        </a>
+        <a href="{% url 'editor' 'version' version.id %}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 font-medium text-gray-700 transition hover:bg-gray-50">
+          <i data-lucide="file-code-2" class="h-4 w-4"></i> Edit LaTeX
+        </a>
+        {% if version.cover_letter %}
+        <button @click="showLetter = !showLetter" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 font-medium text-gray-700 transition hover:bg-gray-50">
+          <i data-lucide="mail" class="h-4 w-4"></i> <span x-text="showLetter ? 'Hide letter' : 'Cover letter'"></span>
+        </button>
+        {% endif %}
+      {% else %}
+        <span class="inline-flex items-center gap-1.5 text-xs text-amber-600">
+          <i data-lucide="triangle-alert" class="h-3.5 w-3.5"></i> No tailored résumé yet — <a href="{% url 'job_detail' app.job.id %}" class="underline">tailor it</a>
+        </span>
+      {% endif %}
+    </div>
+
+    {% if version.cover_letter %}
+    <div x-show="showLetter" x-cloak class="border-t border-gray-100 bg-gray-50/60 px-5 py-4">
+      <div class="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{{ version.cover_letter }}</div>
+    </div>
+    {% endif %}
+
+    <!-- actions -->
+    <div class="flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50/40 px-5 py-3">
+      <a href="{{ app.job.url }}" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-brand-700">
+        <i data-lucide="external-link" class="h-4 w-4"></i> Open posting to apply
+      </a>
+      <div class="flex items-center gap-2">
+        {% include "core/_move_menu.html" with job=app.job all_statuses=all_statuses scope="queue" target="#queue" swap="innerHTML" current=app.status %}
+        <button hx-post="{% url 'set_status' app.job.id %}" hx-vals='{"status":"applied","scope":"queue"}'
+                hx-target="#queue" hx-swap="innerHTML"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-brand-700 hover:to-violet-700">
+          <i data-lucide="check" class="h-4 w-4"></i> Mark applied
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center">
+  <div class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+    <i data-lucide="inbox" class="h-6 w-6"></i>
+  </div>
+  <p class="mt-4 text-sm font-medium text-gray-900">Nothing ready to submit</p>
+  <p class="mt-1 max-w-sm text-sm text-gray-400">Tailor a résumé for a job, then move it to <strong>Ready</strong> — it'll show up here for a final review before you apply.</p>
+  <a href="{% url 'job_list' %}" class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700">
+    <i data-lucide="layout-grid" class="h-4 w-4"></i> Browse jobs
+  </a>
+</div>
+{% endif %}

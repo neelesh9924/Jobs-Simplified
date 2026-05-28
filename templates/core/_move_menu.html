@@ -1,0 +1,30 @@
+{% comment %} Params: job, all_statuses, scope, target, swap, current {% endcomment %}
+<div x-data="moveMenu()" class="relative">
+  <button x-ref="trigger" @click="toggle()" type="button"
+          class="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-50">
+    <i data-lucide="move-right" class="h-3 w-3"></i> Move
+  </button>
+  <div x-ref="menu" x-show="open" @click.outside="open = false" x-cloak x-transition
+       style="display:none"
+       class="fixed z-50 max-h-80 w-44 overflow-y-auto overscroll-contain rounded-lg border border-gray-200 bg-white py-1 shadow-float">
+    {% for value, label in all_statuses %}
+    <button type="button"
+            hx-post="{% url 'set_status' job.id %}"
+            hx-vals='{"status": "{{ value }}", "scope": "{{ scope }}"}'
+            hx-target="{{ target }}" hx-swap="{{ swap }}"
+            @click="open = false"
+            class="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs transition hover:bg-gray-50 {% if value == current %}font-semibold text-brand-700{% else %}text-gray-600{% endif %}">
+      {{ label }}{% if value == current %}<i data-lucide="check" class="h-3 w-3"></i>{% endif %}
+    </button>
+    {% endfor %}
+    <div class="my-1 border-t border-gray-100"></div>
+    <button type="button"
+            hx-post="{% url 'set_status' job.id %}"
+            hx-vals='{"status": "remove", "scope": "{{ scope }}"}'
+            hx-target="{{ target }}" hx-swap="{{ swap }}"
+            @click="open = false"
+            class="flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50">
+      <i data-lucide="trash-2" class="h-3 w-3"></i> Remove from pipeline
+    </button>
+  </div>
+</div>

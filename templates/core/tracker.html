@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Tracker — JobHunt{% endblock %}
+{% block page_title %}Tracker{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'job_list' %}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+  <i data-lucide="layout-grid" class="h-4 w-4"></i> Jobs
+</a>
+{% endblock %}
+
+{% block content %}
+<div id="board">
+  {% include "core/_board.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Home — Job Apply Engine{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <h1 class="text-2xl font-bold">Phase 0 — Stack Verification</h1>
+
+  <!-- Alpine.js counter to verify it's active -->
+  <div x-data="{ count: 0 }" class="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
+    <span class="text-sm text-gray-500">Alpine counter:</span>
+    <button
+      @click="count++"
+      class="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
+    >Click me</button>
+    <span class="font-mono text-indigo-700" x-text="count"></span>
+  </div>
+
+  <!-- HTMX swap demo -->
+  <div class="p-4 bg-white rounded-lg border border-gray-200 space-y-3">
+    <p class="text-sm text-gray-500">HTMX fragment swap:</p>
+    <button
+      hx-get="{% url 'htmx_ping' %}"
+      hx-target="#htmx-result"
+      hx-swap="innerHTML"
+      class="px-4 py-2 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700"
+    >
+      Ping server via HTMX
+    </button>
+    <div id="htmx-result" class="text-sm text-gray-400 italic">
+      (response will appear here)
+    </div>
+  </div>
+</div>
+{% endblock %}
